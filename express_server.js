@@ -4,47 +4,79 @@ const PORT = 8080;  // default port 8080
 
 app.set("view engine", "ejs");
 
+// Example database for short/long URLs
 const urlDatabase = {
   b2xVn2: "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com",
 };
-//Take a form string and convert it into object(req.body)
-app.use(express.urlencoded({extended: true}));
+
+// Middleware to parse form data
+// Take a form string and convert it into object(req.body)
+app.use(express.urlencoded({ extended: true }));
+
+// Home route
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
+
+// URLs index route
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
+
+// New URLs creation route
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 })
+
+// Show a specified URL route
 app.get("/urls/:id", (req, res) => {
+  //:id is a route paramter which is variable, we can access id using req.params.id
   const id = req.params.id;
   const longURL = urlDatabase[id];
-  const templateVars = { id: id, longURL: longURL};
+  // edge case if longURL for given shortURL is not defined
+  if (!longURL) {
+    return res.status(404).send("URL not found!");
+  }
+  const templateVars = { id: id, longURL: longURL };
   res.render("urls_show", templateVars);
 });
+
+// Redirect to long URL route
+app.get("/u/:id", (req, res) => {
+  const id = req.params.id;
+  const longURL = urlDatabase[id];
+  if (!longURL) {
+    return res.status(404).send("URL not found!");
+  }
+  res.redirect(longURL);
+});
+
+// Show URL database in JSON format
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
+
+// Handle new URL submission (POST)
 app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
+  // We can use req.body object to access longURL using longURL key 
   const longURL = req.body.longURL;
   urlDatabase[shortURL] = longURL;
-  // console.log(urlDatabase);
-  // console.log(req.body); // Log the POST request body to the console
-  //res.send("Ok");
   res.redirect(`/urls/${shortURL}`);
 });
+
+// Simple Hello World route
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
+
 app.listen(PORT, () => {
   console.log(`Tiny app listening on port ${PORT}!`);
 });
 
+// Function to generate random string for short URLs
 function generateRandomString() {
   return Math.random().toString(36).slice(2, 8);
 };
