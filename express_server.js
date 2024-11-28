@@ -70,10 +70,20 @@ app.post("/urls", (req, res) => {
 // POST route to remove URL resource
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;
-  if(urlDatabase[id]) {
+  if (urlDatabase[id]) {
     delete urlDatabase[id];
   }
   res.redirect("/urls");
+});
+
+// POST route to edit longURL
+app.post('/urls/:id/update', (req, res) => {
+  const id = req.params.id;
+  const newLongURL = req.body.newLongURL;
+  if (urlDatabase[id]) {
+    urlDatabase[id] = newLongURL;
+  }
+  res.redirect('/urls');
 });
 
 // Simple Hello World route
