@@ -1,4 +1,5 @@
 const express = require("express");
+const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080;  // default port 8080
 
@@ -13,6 +14,7 @@ const urlDatabase = {
 // Middleware to parse form data
 // Take a form string and convert it into object(req.body)
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Home route
 app.get("/", (req, res) => {
@@ -84,6 +86,13 @@ app.post('/urls/:id/update', (req, res) => {
     urlDatabase[id] = newLongURL;
   }
   res.redirect('/urls');
+});
+
+// POST route to handle new login
+app.post('/login', (req, res) => {
+  const username = req.body.username;
+  res.cookie('username', username);
+  res.redirect("/urls");
 });
 
 // Simple Hello World route
