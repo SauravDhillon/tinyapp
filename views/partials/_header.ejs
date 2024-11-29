@@ -16,13 +16,13 @@
       <% if (username) { %>
         <span>Logged in as: <%= username %>!</span>
         <form method="POST" action="/logout">
-          <button type="submit">Logout</button>
+          <button class="btn btn-light" type="submit">Logout</button>
         </form>
         <% } else { %>
           <form method="POST" action="/login">
             <div>
               <input type="text" name="username" placeholder="Username" required />
-              <button type="submit">Login</button>
+              <button class="btn btn-light" type="submit">Login</button>
             </div>
           </form>
           <% } %>
