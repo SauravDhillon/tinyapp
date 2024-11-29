@@ -23,13 +23,17 @@ app.get("/", (req, res) => {
 
 // URLs index route
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = {
+    urls: urlDatabase,
+    username: req.cookies["username"]  // extract username from cookie
+  };
   res.render("urls_index", templateVars);
 });
 
 // New URLs creation route
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = { username: req.cookies["username"] };
+  res.render("urls_new", templateVars);
 })
 
 // Show a specified URL route
@@ -41,7 +45,11 @@ app.get("/urls/:id", (req, res) => {
   if (!longURL) {
     return res.status(404).send("URL not found!");
   }
-  const templateVars = { id: id, longURL: longURL };
+  const templateVars = {
+    id: id,
+    longURL: longURL,
+    username: req.cookies["username"]
+  };
   res.render("urls_show", templateVars);
 });
 
