@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
+const { get } = require("request");
 const app = express();
 const PORT = 8080;  // default port 8080
 
@@ -146,6 +147,17 @@ app.post('/register', (req, res) => {
   const id = generateRandomString();
   const email = req.body.email;
   const password = req.body.password;
+  // Condition to check if email or password is empty
+  if (!email || !password) {
+    return res.status(400).send("Please enter email and password");
+  }
+
+  // Condition to check if user has already exisiting email
+  const exisitingUser = getUserByEmail(email);
+  if (exisitingUser) {
+    return res.status(400).send("Email is already registered");
+  }
+
   const newUser = {
     id: id,
     email: email,
@@ -153,6 +165,7 @@ app.post('/register', (req, res) => {
   };
   users[id] = newUser;
   // console.log(users);
+  // Set the user ID in a cookie 
   res.cookie('user_id', id);
   res.redirect("/urls");
 });
@@ -169,4 +182,13 @@ app.listen(PORT, () => {
 // Function to generate random string for short URLs
 function generateRandomString() {
   return Math.random().toString(36).slice(2, 8);
+};
+
+function getUserByEmail(email) {
+  for (const userId in users) {
+    if (users[userId].email === email) {
+      return users[userId];
+    }
+  }
+  return null;
 };
