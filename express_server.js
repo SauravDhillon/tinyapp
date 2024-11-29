@@ -103,6 +103,11 @@ app.post('/login', (req, res) => {
   res.redirect("/urls");
 });
 
+// POST route to handle logout 
+app.post('/logout', (req,res) => {
+  res.clearCookie("username");
+  res.redirect("/urls");
+});
 // Simple Hello World route
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
