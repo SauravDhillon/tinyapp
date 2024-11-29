@@ -104,10 +104,19 @@ app.post('/login', (req, res) => {
 });
 
 // POST route to handle logout 
-app.post('/logout', (req,res) => {
+app.post('/logout', (req, res) => {
   res.clearCookie("username");
   res.redirect("/urls");
 });
+
+// Get register template
+app.get('/register', (req, res) => {
+  const templateVars = {
+    username: req.cookies["username"]
+  };
+  res.render("register", templateVars);
+});
+
 // Simple Hello World route
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
