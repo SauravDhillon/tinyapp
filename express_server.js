@@ -11,6 +11,20 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com",
 };
 
+// Example users object to test registration and login 
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
 // Middleware to parse form data
 // Take a form string and convert it into object(req.body)
 app.use(express.urlencoded({ extended: true }));
@@ -23,22 +37,30 @@ app.get("/", (req, res) => {
 
 // URLs index route
 app.get("/urls", (req, res) => {
+  const userId = req.cookies["user_id"];
+  const user = users[userId];
   const templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"]  // extract username from cookie
+    user: user
   };
   res.render("urls_index", templateVars);
 });
 
 // New URLs creation route
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const userId = req.cookies["user_id"];
+  const user = users[userId];
+  const templateVars = {
+    user: user
+  };
   res.render("urls_new", templateVars);
 })
 
 // Show a specified URL route
 app.get("/urls/:id", (req, res) => {
   //:id is a route paramter which is variable, we can access id using req.params.id
+  const userId = req.cookies["user_id"];
+  const user = users[userId];
   const id = req.params.id;
   const longURL = urlDatabase[id];
   // edge case if longURL for given shortURL is not defined
@@ -48,7 +70,7 @@ app.get("/urls/:id", (req, res) => {
   const templateVars = {
     id: id,
     longURL: longURL,
-    username: req.cookies["username"]
+    user: user
   };
   res.render("urls_show", templateVars);
 });
@@ -98,23 +120,41 @@ app.post('/urls/:id/update', (req, res) => {
 
 // POST route to handle new login
 app.post('/login', (req, res) => {
-  const username = req.body.username;
-  res.cookie('username', username);
+  const userId = req.body.user_id;
+  res.cookie('user_id', userId);
   res.redirect("/urls");
 });
 
 // POST route to handle logout 
 app.post('/logout', (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect("/urls");
 });
 
-// Get register template
+// Get registration template
 app.get('/register', (req, res) => {
+  const userId = req.cookies["user_id"];
+  const user = users[userId];
   const templateVars = {
-    username: req.cookies["username"]
+    user: user
   };
   res.render("register", templateVars);
+});
+
+// POST route to handle registration
+app.post('/register', (req, res) => {
+  const id = generateRandomString();
+  const email = req.body.email;
+  const password = req.body.password;
+  const newUser = {
+    id: id,
+    email: email,
+    password: password
+  };
+  users[id] = newUser;
+  // console.log(users);
+  res.cookie('user_id', id);
+  res.redirect("/urls");
 });
 
 // Simple Hello World route
