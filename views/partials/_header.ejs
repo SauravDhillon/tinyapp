@@ -19,12 +19,8 @@
           <button class="btn btn-light" type="submit">Logout</button>
         </form>
         <% } else { %>
-          <form method="POST" action="/login">
-            <div>
-              <input type="text" name="Email" style="width: 225px; margin: 1em" placeholder="Email" required />
-              <button class="btn btn-light" type="submit">Login</button>
-            </div>
-          </form>
+          <a class="nav-item nav-link" href="/login">Login</a>
+          <a class="nav-item nav-link" href="/register">Register</a>
           <% } %>
     </div>
   </nav>

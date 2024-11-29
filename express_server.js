@@ -170,6 +170,16 @@ app.post('/register', (req, res) => {
   res.redirect("/urls");
 });
 
+// Get route to serve new Login form
+app.get('/login', (req, res) => {
+  const userId = req.cookies["user_id"];
+  const user = users[userId];
+  const templateVars = {
+    user: user
+  };
+  res.render("login", templateVars);
+});
+
 // Simple Hello World route
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
@@ -184,6 +194,7 @@ function generateRandomString() {
   return Math.random().toString(36).slice(2, 8);
 };
 
+// Helper function to look up existing object by email
 function getUserByEmail(email) {
   for (const userId in users) {
     if (users[userId].email === email) {
