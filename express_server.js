@@ -33,7 +33,7 @@ app.use(cookieParser());
 
 // Home route
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.send("Welcome to TinyApp!");
 });
 
 // URLs index route
@@ -119,19 +119,6 @@ app.post('/urls/:id/update', (req, res) => {
   res.redirect('/urls');
 });
 
-// POST route to handle new login
-app.post('/login', (req, res) => {
-  const userId = req.body.user_id;
-  res.cookie('user_id', userId);
-  res.redirect("/urls");
-});
-
-// POST route to handle logout 
-app.post('/logout', (req, res) => {
-  res.clearCookie("user_id");
-  res.redirect("/urls");
-});
-
 // Get registration template
 app.get('/register', (req, res) => {
   const userId = req.cookies["user_id"];
@@ -178,6 +165,29 @@ app.get('/login', (req, res) => {
     user: user
   };
   res.render("login", templateVars);
+});
+
+// POST route to handle new login
+app.post('/login', (req, res) => {
+  const { email, password } = req.body;
+  const user = getUserByEmail(email);
+  // If no user with that email exists, return 403 (Forbidden)
+  if (!user) {
+    return res.status(403).send("Invalid Email or password");
+  }
+
+  // If password doesn't match return 403 forbidden
+  if (user.password !== password) {
+    return res.status(403).send("Invalid Email or password");
+  }
+  res.cookie('user_id', user.id);
+  res.redirect("/urls");
+});
+
+// POST route to handle logout 
+app.post('/logout', (req, res) => {
+  res.clearCookie("user_id");
+  res.redirect("/login");
 });
 
 // Simple Hello World route
