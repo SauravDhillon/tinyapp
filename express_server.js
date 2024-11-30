@@ -8,8 +8,14 @@ app.set("view engine", "ejs");
 
 // Example database for short/long URLs
 const urlDatabase = {
-  b2xVn2: "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
+  },
 };
 
 // Example users object to test registration and login 
@@ -39,9 +45,13 @@ app.get("/", (req, res) => {
 // URLs index route
 app.get("/urls", (req, res) => {
   const userId = req.cookies["user_id"];
+  if (!userId) {
+    return res.status(401).send("<html><body><h1>You must be logged in to view your URLs. Please <a href='/login'>log in</a> or <a href='/register'>register</a>.</h1></body></html>");
+  }
   const user = users[userId];
+  const userUrls = urlsForUser(userId);
   const templateVars = {
-    urls: urlDatabase,
+    urls: userUrls,
     user: user
   };
   res.render("urls_index", templateVars);
@@ -67,14 +77,22 @@ app.get("/urls/:id", (req, res) => {
   const userId = req.cookies["user_id"];
   const user = users[userId];
   const id = req.params.id;
-  const longURL = urlDatabase[id];
-  // edge case if longURL for given shortURL is not defined
-  if (!longURL) {
-    return res.status(404).send("URL not found!");
+  const urlData = urlDatabase[id];
+
+  if (!urlData) {
+    return res.status(404).send("<html><body><h1>URL not found!</h1></body></html>");
+  }
+
+  if (!userId) {
+    return res.status(401).send("<html><body><h1>You must be logged in to view this URL. Please <a href='/login'>log in</a>.</h1></body></html>");
+  }
+
+  if (urlData.userID !== userId) {
+    return res.status(403).send("You don't have authorization to view this URL");
   }
   const templateVars = {
     id: id,
-    longURL: longURL,
+    longURL: urlData.longURL,
     user: user
   };
   res.render("urls_show", templateVars);
@@ -83,11 +101,11 @@ app.get("/urls/:id", (req, res) => {
 // Redirect to long URL route
 app.get("/u/:id", (req, res) => {
   const id = req.params.id;
-  const longURL = urlDatabase[id];
-  if (!longURL) {
+  const urlData = urlDatabase[id];
+  if (!urlData) {
     return res.status(404).send("<html><body><h1>404 Error: Short URL not found</h1></body></html>");
   }
-  res.redirect(longURL);
+  res.redirect(urlData.longURL);
 });
 
 // Show URL database in JSON format
@@ -104,26 +122,54 @@ app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
   // We can use req.body object to access longURL using longURL key 
   const longURL = req.body.longURL;
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL] = {
+    longURL: longURL,
+    userID: userId,
+  }
   res.redirect(`/urls/${shortURL}`);
 });
 
 // POST route to remove URL resource
 app.post("/urls/:id/delete", (req, res) => {
+  const userId = req.cookies["user_id"];
   const id = req.params.id;
-  if (urlDatabase[id]) {
-    delete urlDatabase[id];
+  const urlData = urlDatabase[id];
+
+  if (!urlData) {
+    return res.status(404).send("<html><body><h1>URL not found!</h1></body></html>");
   }
+
+  if (!userId) {
+    return res.status(401).send("<html><body><h1>You must be logged in to delete this URL.</h1></body></html>");
+  }
+
+  if (urlData.userID !== userId) {
+    return res.status(403).send("<html><body><h1>You don't have authorization to delete this URL.</h1></body></html>");
+  }
+
+  delete urlDatabase[id];
   res.redirect("/urls");
 });
 
 // POST route to edit longURL
 app.post('/urls/:id/update', (req, res) => {
+  const userId = req.cookies["user_id"];
   const id = req.params.id;
   const newLongURL = req.body.newLongURL;
-  if (urlDatabase[id]) {
-    urlDatabase[id] = newLongURL;
+  const urlData = urlDatabase[id];
+
+  if (!urlData) {
+    return res.status(404).send("<html><body><h1>URL not found!</h1></body></html>");
   }
+
+  if (!userId) {
+    return res.status(401).send("<html><body><h1>You must be logged in to update this URL.</h1></body></html>");
+  }
+
+  if (urlData.userID !== userId) {
+    return res.status(403).send("<html><body><h1>You don't have authorization to update this URL.</h1></body></html>");
+  }
+  urlDatabase[id].longURL = newLongURL;
   res.redirect('/urls');
 });
 
@@ -230,3 +276,14 @@ function getUserByEmail(email) {
   }
   return null;
 };
+
+// Helper function to filter URLs based on the userID
+function urlsForUser(id) {
+  const userUrls = {};
+  for (const shortURL in urlDatabase) {
+    if (urlDatabase[shortURL].userID === id) {
+      userUrls[shortURL] = urlDatabase[shortURL];
+    }
+  }
+  return userUrls;
+}
