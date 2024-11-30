@@ -50,6 +50,10 @@ app.get("/urls", (req, res) => {
 // New URLs creation route
 app.get("/urls/new", (req, res) => {
   const userId = req.cookies["user_id"];
+  // Redirect to login if user is not logged in 
+  if (!userId) {
+    return res.redirect('/login');
+  }
   const user = users[userId];
   const templateVars = {
     user: user
@@ -81,7 +85,7 @@ app.get("/u/:id", (req, res) => {
   const id = req.params.id;
   const longURL = urlDatabase[id];
   if (!longURL) {
-    return res.status(404).send("URL not found!");
+    return res.status(404).send("<html><body><h1>404 Error: Short URL not found</h1></body></html>");
   }
   res.redirect(longURL);
 });
@@ -93,6 +97,10 @@ app.get("/urls.json", (req, res) => {
 
 // Handle new URL submission (POST)
 app.post("/urls", (req, res) => {
+  const userId = req.cookies["user_id"];
+  if (!userId) {
+    return res.status(401).send("<html><body><h1>You must be logged in to shorten URLs</h1></body></html>");
+  }
   const shortURL = generateRandomString();
   // We can use req.body object to access longURL using longURL key 
   const longURL = req.body.longURL;
@@ -123,8 +131,13 @@ app.post('/urls/:id/update', (req, res) => {
 app.get('/register', (req, res) => {
   const userId = req.cookies["user_id"];
   const user = users[userId];
+
+  // Checking if userID cookie is already set to check if user is logged in
+  if (userId) {
+    return res.redirect("/urls");
+  }
   const templateVars = {
-    user: user
+    user: null
   };
   res.render("register", templateVars);
 });
@@ -161,8 +174,12 @@ app.post('/register', (req, res) => {
 app.get('/login', (req, res) => {
   const userId = req.cookies["user_id"];
   const user = users[userId];
+  // Checking if user is logged in 
+  if (userId) {
+    return res.redirect("/urls");
+  }
   const templateVars = {
-    user: user
+    user: null
   };
   res.render("login", templateVars);
 });
