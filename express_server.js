@@ -1,4 +1,5 @@
 const express = require("express");
+const bcrypt = require("bcryptjs");
 const cookieParser = require('cookie-parser');
 const { get } = require("request");
 const app = express();
@@ -23,12 +24,12 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur",
+    password: bcrypt.hashSync("purple-monkey-dinosaur"),
   },
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk",
+    password: bcrypt.hashSync("dishwasher-funk"),
   },
 };
 
@@ -69,7 +70,23 @@ app.get("/urls/new", (req, res) => {
     user: user
   };
   res.render("urls_new", templateVars);
-})
+});
+
+// Handle new URL submission (POST)
+app.post("/urls", (req, res) => {
+  const userId = req.cookies["user_id"];
+  if (!userId) {
+    return res.status(401).send("<html><body><h1>You must be logged in to shorten URLs</h1></body></html>");
+  }
+  const shortURL = generateRandomString();
+  // We can use req.body object to access longURL using longURL key 
+  const longURL = req.body.longURL;
+  urlDatabase[shortURL] = {
+    longURL: longURL,
+    userID: userId,
+  }
+  res.redirect(`/urls/${shortURL}`);
+});
 
 // Show a specified URL route
 app.get("/urls/:id", (req, res) => {
@@ -77,7 +94,7 @@ app.get("/urls/:id", (req, res) => {
   const userId = req.cookies["user_id"];
   const user = users[userId];
   const id = req.params.id;
-  const urlData = urlDatabase[id];
+  const urlData = urlDatabase[id]; // urlData is value of urlDatabase at key id or shortURL
 
   if (!urlData) {
     return res.status(404).send("<html><body><h1>URL not found!</h1></body></html>");
@@ -108,28 +125,7 @@ app.get("/u/:id", (req, res) => {
   res.redirect(urlData.longURL);
 });
 
-// Show URL database in JSON format
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-
-// Handle new URL submission (POST)
-app.post("/urls", (req, res) => {
-  const userId = req.cookies["user_id"];
-  if (!userId) {
-    return res.status(401).send("<html><body><h1>You must be logged in to shorten URLs</h1></body></html>");
-  }
-  const shortURL = generateRandomString();
-  // We can use req.body object to access longURL using longURL key 
-  const longURL = req.body.longURL;
-  urlDatabase[shortURL] = {
-    longURL: longURL,
-    userID: userId,
-  }
-  res.redirect(`/urls/${shortURL}`);
-});
-
-// POST route to remove URL resource
+// POST route to delete URL resource
 app.post("/urls/:id/delete", (req, res) => {
   const userId = req.cookies["user_id"];
   const id = req.params.id;
@@ -204,12 +200,16 @@ app.post('/register', (req, res) => {
     return res.status(400).send("Email is already registered");
   }
 
+  // Hash the password using bcrypt
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
   const newUser = {
     id: id,
     email: email,
-    password: password
+    password: hashedPassword
   };
   users[id] = newUser;
+  console.log(hashedPassword);
   // console.log(users);
   // Set the user ID in a cookie 
   res.cookie('user_id', id);
@@ -224,6 +224,7 @@ app.get('/login', (req, res) => {
   if (userId) {
     return res.redirect("/urls");
   }
+  // User is considered null because it is not logged in  
   const templateVars = {
     user: null
   };
@@ -240,8 +241,8 @@ app.post('/login', (req, res) => {
   }
 
   // If password doesn't match return 403 forbidden
-  if (user.password !== password) {
-    return res.status(403).send("Invalid Email or password");
+  if (!bcrypt.compareSync(password, user.password)) {
+    return res.status(403).send("Invalid password entered");
   }
   res.cookie('user_id', user.id);
   res.redirect("/urls");
@@ -256,6 +257,11 @@ app.post('/logout', (req, res) => {
 // Simple Hello World route
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
+});
+
+// Show URL database in JSON format
+app.get("/urls.json", (req, res) => {
+  res.json(urlDatabase);
 });
 
 app.listen(PORT, () => {
@@ -281,6 +287,7 @@ function getUserByEmail(email) {
 function urlsForUser(id) {
   const userUrls = {};
   for (const shortURL in urlDatabase) {
+    // Below we are checking if userID in our database is same as id cookie for logged in user
     if (urlDatabase[shortURL].userID === id) {
       userUrls[shortURL] = urlDatabase[shortURL];
     }
