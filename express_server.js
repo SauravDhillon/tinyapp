@@ -1,11 +1,12 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-session");
-const { getUserByEmail } = require('./helpers');
+const { getUserByEmail, urlsForUser } = require('./helpers');
 const { get } = require("request");
 const app = express();
 const PORT = 8080;  // default port 8080
 
+// Template engine setup
 app.set("view engine", "ejs");
 
 // Example database for short/long URLs
@@ -39,9 +40,8 @@ const users = {
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieSession({
   name: 'session',
-  keys: ["kcvrefefrvceefe"],
-}
-));
+  keys: ["ksdfercfrtygre"],
+}));
 
 // Home route
 app.get("/", (req, res) => {
@@ -52,12 +52,12 @@ app.get("/", (req, res) => {
 app.get("/urls", (req, res) => {
   const userId = req.session.user_id;
   if (!userId) {
-    return res.status(401).send("<html><body><h1>You must be logged in to view your URLs. Please <a href='/login'>log in</a> or <a href='/register'>register</a>.</h1></body></html>");
+    return res.status(401).send("<html><body><h1>You must be logged in to view your URLs. Please <a href='/login'>log in</a> or <a href='/register'>register</a>yourself first.</h1></body></html>");
   }
   const user = users[userId];
-  const userUrls = urlsForUser(userId);
+  const userUrls = urlsForUser(userId, urlDatabase);
   const templateVars = {
-    urls: userUrls,
+    urls: userUrls, // We are passing user specific URLs here only
     user: user
   };
   res.render("urls_index", templateVars);
@@ -102,14 +102,16 @@ app.get("/urls/:id", (req, res) => {
   const urlData = urlDatabase[id]; // urlData is value of urlDatabase at key id or shortURL
 
   if (!urlData) {
-    return res.status(404).send("<html><body><h1>URL not found!</h1></body></html>");
+    return res.status(404).send("<html><body><h1>404 Error: URL not found!</h1></body></html>");
   }
 
   if (!userId) {
-    return res.status(401).send("<html><body><h1>You must be logged in to view this URL. Please <a href='/login'>log in</a>.</h1></body></html>");
+    // 401 status code is for unauthorized access
+    return res.status(401).send("<html><body><h1>You must be logged in to view  this URL. Please <a href='/login'>log in</a>.</h1></body></html>");
   }
 
   if (urlData.userID !== userId) {
+    // 403 status code is for forbidden
     return res.status(403).send("You don't have authorization to view this URL");
   }
   const templateVars = {
@@ -184,7 +186,7 @@ app.get('/register', (req, res) => {
     return res.redirect("/urls");
   }
   const templateVars = {
-    user: null
+    user: null // user will be set to null if not already registered
   };
   res.render("register", templateVars);
 });
@@ -215,7 +217,7 @@ app.post('/register', (req, res) => {
   };
   users[id] = newUser;
   // console.log(hashedPassword);
-  
+
   // Set the user ID in a cookie 
   req.session.user_id = id;
   res.redirect("/urls");
@@ -278,14 +280,3 @@ function generateRandomString() {
   return Math.random().toString(36).slice(2, 8);
 };
 
-// Helper function to filter URLs based on the userID
-function urlsForUser(id) {
-  const userUrls = {};
-  for (const shortURL in urlDatabase) {
-    // Below we are checking if userID in our database is same as id cookie for logged in user
-    if (urlDatabase[shortURL].userID === id) {
-      userUrls[shortURL] = urlDatabase[shortURL];
-    }
-  }
-  return userUrls;
-}
