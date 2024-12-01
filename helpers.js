@@ -5,7 +5,7 @@ function getUserByEmail(email, database) {
       return database[userId];
     }
   }
-  return undefined;
+  return null;
 };
 
 module.exports = { getUserByEmail };
