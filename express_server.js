@@ -1,6 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const cookieParser = require('cookie-parser');
+const cookieSession = require("cookie-session");
 const { get } = require("request");
 const app = express();
 const PORT = 8080;  // default port 8080
@@ -36,7 +36,11 @@ const users = {
 // Middleware to parse form data
 // Take a form string and convert it into object(req.body)
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ["kcvrefefrvceefe"],
+}
+));
 
 // Home route
 app.get("/", (req, res) => {
@@ -45,7 +49,7 @@ app.get("/", (req, res) => {
 
 // URLs index route
 app.get("/urls", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   if (!userId) {
     return res.status(401).send("<html><body><h1>You must be logged in to view your URLs. Please <a href='/login'>log in</a> or <a href='/register'>register</a>.</h1></body></html>");
   }
@@ -60,7 +64,7 @@ app.get("/urls", (req, res) => {
 
 // New URLs creation route
 app.get("/urls/new", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   // Redirect to login if user is not logged in 
   if (!userId) {
     return res.redirect('/login');
@@ -74,7 +78,7 @@ app.get("/urls/new", (req, res) => {
 
 // Handle new URL submission (POST)
 app.post("/urls", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   if (!userId) {
     return res.status(401).send("<html><body><h1>You must be logged in to shorten URLs</h1></body></html>");
   }
@@ -91,7 +95,7 @@ app.post("/urls", (req, res) => {
 // Show a specified URL route
 app.get("/urls/:id", (req, res) => {
   //:id is a route paramter which is variable, we can access id using req.params.id
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const user = users[userId];
   const id = req.params.id;
   const urlData = urlDatabase[id]; // urlData is value of urlDatabase at key id or shortURL
@@ -127,7 +131,7 @@ app.get("/u/:id", (req, res) => {
 
 // POST route to delete URL resource
 app.post("/urls/:id/delete", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const id = req.params.id;
   const urlData = urlDatabase[id];
 
@@ -149,7 +153,7 @@ app.post("/urls/:id/delete", (req, res) => {
 
 // POST route to edit longURL
 app.post('/urls/:id/update', (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const id = req.params.id;
   const newLongURL = req.body.newLongURL;
   const urlData = urlDatabase[id];
@@ -171,7 +175,7 @@ app.post('/urls/:id/update', (req, res) => {
 
 // Get registration template
 app.get('/register', (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const user = users[userId];
 
   // Checking if userID cookie is already set to check if user is logged in
@@ -210,15 +214,14 @@ app.post('/register', (req, res) => {
   };
   users[id] = newUser;
   console.log(hashedPassword);
-  // console.log(users);
   // Set the user ID in a cookie 
-  res.cookie('user_id', id);
+  req.session.user_id = id;
   res.redirect("/urls");
 });
 
 // Get route to serve new Login form
 app.get('/login', (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const user = users[userId];
   // Checking if user is logged in 
   if (userId) {
@@ -244,13 +247,13 @@ app.post('/login', (req, res) => {
   if (!bcrypt.compareSync(password, user.password)) {
     return res.status(403).send("Invalid password entered");
   }
-  res.cookie('user_id', user.id);
+  req.session.user_id = user.id;
   res.redirect("/urls");
 });
 
 // POST route to handle logout 
 app.post('/logout', (req, res) => {
-  res.clearCookie("user_id");
+  req.session.user_id = null;
   res.redirect("/login");
 });
 
