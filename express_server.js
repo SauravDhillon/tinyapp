@@ -1,6 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-session");
+const { getUserByEmail } = require('./helpers');
 const { get } = require("request");
 const app = express();
 const PORT = 8080;  // default port 8080
@@ -199,7 +200,7 @@ app.post('/register', (req, res) => {
   }
 
   // Condition to check if user has already exisiting email
-  const exisitingUser = getUserByEmail(email);
+  const exisitingUser = getUserByEmail(email, users);
   if (exisitingUser) {
     return res.status(400).send("Email is already registered");
   }
@@ -213,7 +214,8 @@ app.post('/register', (req, res) => {
     password: hashedPassword
   };
   users[id] = newUser;
-  console.log(hashedPassword);
+  // console.log(hashedPassword);
+  
   // Set the user ID in a cookie 
   req.session.user_id = id;
   res.redirect("/urls");
@@ -237,7 +239,7 @@ app.get('/login', (req, res) => {
 // POST route to handle new login
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
-  const user = getUserByEmail(email);
+  const user = getUserByEmail(email, users);
   // If no user with that email exists, return 403 (Forbidden)
   if (!user) {
     return res.status(403).send("Invalid Email or password");
@@ -274,16 +276,6 @@ app.listen(PORT, () => {
 // Function to generate random string for short URLs
 function generateRandomString() {
   return Math.random().toString(36).slice(2, 8);
-};
-
-// Helper function to look up existing object by email
-function getUserByEmail(email) {
-  for (const userId in users) {
-    if (users[userId].email === email) {
-      return users[userId];
-    }
-  }
-  return null;
 };
 
 // Helper function to filter URLs based on the userID
