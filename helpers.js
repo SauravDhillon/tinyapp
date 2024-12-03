@@ -20,5 +20,11 @@ function urlsForUser(id, database) {
   return userUrls;
 }
 
+// Function to generate random string for short URLs
+function generateRandomString() {
+  return Math.random().toString(36).slice(2, 8);
+};
 
-module.exports = { getUserByEmail, urlsForUser };
+
+
+module.exports = { getUserByEmail, urlsForUser, generateRandomString };
