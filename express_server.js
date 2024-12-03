@@ -1,39 +1,14 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-session");
-const { getUserByEmail, urlsForUser } = require('./helpers');
-const { get } = require("request");
+const { getUserByEmail, urlsForUser, generateRandomString } = require('./helpers');
+const { urlDatabase, users } = require("./database");
+const request = require("request");
 const app = express();
 const PORT = 8080;  // default port 8080
 
 // Template engine setup
 app.set("view engine", "ejs");
-
-// Example database for short/long URLs
-const urlDatabase = {
-  b6UTxQ: {
-    longURL: "https://www.tsn.ca",
-    userID: "aJ48lW",
-  },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
-    userID: "aJ48lW",
-  },
-};
-
-// Example users object to test registration and login 
-const users = {
-  userRandomID: {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: bcrypt.hashSync("purple-monkey-dinosaur"),
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: bcrypt.hashSync("dishwasher-funk"),
-  },
-};
 
 // Middleware to parse form data
 // Take a form string and convert it into object(req.body)
@@ -45,7 +20,12 @@ app.use(cookieSession({
 
 // Home route
 app.get("/", (req, res) => {
-  res.send("Welcome to TinyApp!");
+  const userId = req.session.user_id;
+  if (userId) {
+    return res.redirect("/urls");
+  } else {
+    return res.redirect("/login");
+  }
 });
 
 // URLs index route
@@ -257,7 +237,7 @@ app.post('/login', (req, res) => {
 
 // POST route to handle logout 
 app.post('/logout', (req, res) => {
-  req.session.user_id = null;
+  req.session = null;
   res.redirect("/login");
 });
 
@@ -275,8 +255,4 @@ app.listen(PORT, () => {
   console.log(`Tiny app listening on port ${PORT}!`);
 });
 
-// Function to generate random string for short URLs
-function generateRandomString() {
-  return Math.random().toString(36).slice(2, 8);
-};
 
